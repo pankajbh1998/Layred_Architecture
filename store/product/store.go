@@ -1,9 +1,9 @@
 package product
 
 import (
+	"catalog/errors"
 	"catalog/model"
 	"database/sql"
-	"errors"
 	"strconv"
 )
 
@@ -16,65 +16,69 @@ func New(db *sql.DB) Store {
 }
 
 func (s storage)GetById(id int)(model.Product,error){
+	emptyProduct:=model.Product{}
 	result:=s.Db.QueryRow("Select Id,Name,BrandId from Product where Id = ?",id)
 	var prd model.Product
 	err:=result.Scan(&prd.Id,&prd.Name,&prd.Brand.Id)
 	if err != nil {
-		return model.Product{},errors.New("Product does not exist")
+		return emptyProduct,errors.ProductDoesNotExist
 	}
 	return prd,nil
 }
 
 
-func (s storage)GetByName(name string)(model.Product,error){
-	//log.Println(name)
-	result:=s.Db.QueryRow("Select Id,Name,BrandID from Product where Name = ?",name)
-	var pr model.Product
-	err:=result.Scan(&pr.Id,&pr.Name,&pr.Brand.Id)
-	//log.Println(pr)
+func (s storage)GetByName(name string)([]model.Product,error){
+	emptyProduct:=[]model.Product(nil)
+	result,err:=s.Db.Query("Select Id,Name,BrandID from Product where Name = ?",name)
 	if err != nil {
-		return model.Product{},errors.New("Product does not exist")
+		return emptyProduct,errors.ProductDoesNotExist
+	}
+	pr:=[]model.Product(nil)
+	for result.Next() {
+		var temp model.Product
+		result.Scan(&temp.Id, &temp.Name, &temp.Brand.Id)
+		pr=append(pr,temp)
 	}
 	return pr,nil
 }
-func (s storage)CreateProduct(pr model.Product)int{
-	result,_:=s.Db.Exec("Insert into Product (Name,BrandId) values (?,?)",pr.Name,pr.Brand.Id)
-	//if err != nil {
-	//	return model.Product{},errors.New("Datatype Mismatch")
-	//}
+func (s storage)CreateProduct(pr model.Product)(int,error){
+	result,err:=s.Db.Exec("Insert into Product (Name,BrandId) values (?,?)",pr.Name,pr.Brand.Id)
+	if err != nil {
+		return 0,errors.ThereIsSomeTechnicalIssue
+	}
 	num,_:=result.LastInsertId()
-	return int(num)
+	return int(num),err
 }
 
-func (s storage)UpdateProduct(pr model.Product)(error){
+func (s storage)UpdateProduct(pr model.Product)error{
 	query:="Update Product set"
 	flag:=false
 	if pr.Name != ""{
-		query+=" Name='"
-		query+=pr.Name
+		query+=" Name='"+pr.Name+"' "
 		flag=true
 	}
 	if pr.Brand.Id>0 {
 		if flag {
 			query+="',"
 		}
-		query+=" BrandId='"
-		query+=strconv.Itoa(pr.Brand.Id)
+		query+=" BrandId='"+strconv.Itoa(pr.Brand.Id) + "' "
 	}
-	query+="' where id = ?"
-	//log.Println(query,pr.Id)
+	query+="where id = ?"
 	_,err:=s.Db.Exec(query,pr.Id )
-	//log.Println(err)
 	if err != nil {
-		return errors.New("Id does not exist")
+		return errors.PleaseEnterSomeData
 	}
 	return nil
 }
 
-func (s storage)DeleteProduct(id int)(error){
-	_,err:=s.Db.Exec("Delete from Product where id=?",id)
+func (s storage)DeleteProduct(id int)error{
+	result,err:=s.Db.Exec("Delete from Product where id=?",id)
 	if err != nil {
-		return errors.New("Id does not exist")
+		return errors.ProductDoesNotExist
+	}
+	num,_:=result.RowsAffected()
+	if num==0{
+		return errors.ProductDoesNotExist
 	}
 	return nil
 }
