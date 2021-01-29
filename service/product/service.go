@@ -2,84 +2,112 @@ package product
 
 import (
 	"catalog/model"
-	"catalog/store/brand"
+	storeB "catalog/store/brand"
 	"catalog/store/product"
 )
 
 type service struct{
 	storePr product.Store
-	storeBr brand.Store
+	storeBr storeB.Store
 }
 
-func New(ps product.Store,bs brand.Store)Service{
+func New(ps product.Store,bs storeB.Store)Service{
 	return service{ps,bs}
 }
 
 func (s service)GetById(id int)(model.Product,error){
-	emptyProduct:=model.Product{}
 	prd,err:=s.storePr.GetById(id)
 	if err != nil {
-		return emptyProduct,err
+		return model.Product{},err
 	}
-
 	br,_:=s.storeBr.GetById(prd.Brand.Id)
 	prd.Brand=br
 	return prd,nil
 }
 func (s service)GetByName(name string)([]model.Product,error){
-	emptyProduct:=[]model.Product(nil)
 	prd,err:=s.storePr.GetByName(name)
 	if err != nil{
-		return emptyProduct,err
+		return []model.Product(nil),err
 	}
 	for i,pr:=range prd {
+		//log.Println(pr)
 		pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
+		//log.Println(pr)
 		prd[i].Brand=pr.Brand
 	}
 	return prd,nil
 }
 
 func (s service)CreateProduct(pr model.Product)(model.Product,error){
-	emptyProduct:=model.Product{}
 	br,err:=s.storeBr.GetByName(pr.Brand.Name)
-	if err!=nil {
-		br.Id,err=s.storeBr.CreateBrand(pr.Brand)
+	//log.Println(br)
+	if err != nil {
+		num,err:=s.storeBr.CreateBrand(pr.Brand)
 		if err != nil {
-			return emptyProduct,err
+			return model.Product{},err
 		}
+		br.Id=num
 	}
+	//log.Println(br)
 	pr.Brand=br
 	num,err:=s.storePr.CreateProduct(pr)
 	if err != nil {
-		return emptyProduct,err
+		return model.Product{},err
 	}
-	pr,_=s.storePr.GetById(num)
-	pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
+	//log.Println(pr,num)
+	pr,err=s.storePr.GetById(num)
+	if err != nil {
+		return model.Product{},err
+	}
+	br,err=s.storeBr.GetById(pr.Brand.Id)
+	if err != nil {
+		return model.Product{},err
+	}
+	pr.Brand=br
 	return pr,nil
 }
 func (s service)UpdateProduct(pr model.Product)(model.Product,error){
-	br:=model.Brand{}
+	brId:=0
 	if pr.Brand.Name != "" {
-		var err error
-		br,err=s.storeBr.GetByName(pr.Brand.Name)
+		br,err:=s.storeBr.GetByName(pr.Brand.Name)
+		//log.Println(br)
 		if err !=nil {
-			br.Id,err=s.storeBr.CreateBrand(pr.Brand)
+			num,err:=s.storeBr.CreateBrand(pr.Brand)
 			if err != nil {
-				return model.Product{}, err
+				return model.Product{},err
 			}
+			brId=num
+		} else {
+			brId=br.Id
 		}
+		//log.Println(brId)
 	}
-	pr.Brand=br
+	pr.Brand.Id=brId
 	err:=s.storePr.UpdateProduct(pr)
 	if err != nil {
 			return model.Product{},err
 		}
-	pr,_=s.storePr.GetById(pr.Id)
-	pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
+	pr,err=s.storePr.GetById(pr.Id)
+	if err != nil {
+		return model.Product{},err
+	}
+	pr.Brand,err=s.storeBr.GetById(pr.Brand.Id)
+	if err != nil {
+		return model.Product{},err
+	}
 	return pr,nil
 }
 
-func (s service)DeleteProduct(id int)error{
+func (s service)DeleteProduct(id int)(error){
+	//pr,err:=s.storePr.GetById(id)
+	//if err != nil {
+	//	return model.Product{},err
+	//}
+	//br,err:=s.storeBr.GetById(pr.Brand.Id)
+	//if err != nil {
+	//	return model.Product{},err
+	//}
+	//pr.Brand=br
 	err:=s.storePr.DeleteProduct(id)
 	if err != nil {
 		return err

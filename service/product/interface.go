@@ -7,6 +7,6 @@ type Service interface {
 	GetByName(string)([]model.Product,error)
 	CreateProduct(model.Product)(model.Product,error)
 	UpdateProduct(model.Product)(model.Product,error)
-	DeleteProduct(int)error
+	DeleteProduct(int)(error)
 }
 
