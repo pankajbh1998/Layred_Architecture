@@ -1,10 +1,10 @@
 package product
 
 import (
-	"catalog/errors"
-	"catalog/model"
+	model "catalog/model"
 	"catalog/store/brand"
 	"catalog/store/product"
+	"errors"
 	"github.com/golang/mock/gomock"
 	"reflect"
 	"testing"
@@ -14,7 +14,7 @@ func TestGetById(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	ps:=product.NewMockStore(ctrl)
 	bs:=brand.NewMockStore(ctrl)
-	servicePr:=New(ps,bs)
+	servicepr:=New(ps,bs)
 	testCases:=[]struct{
 		input int
 		intermediateOutput model.Product
@@ -22,18 +22,22 @@ func TestGetById(t *testing.T){
 		err error
 	}{
 		{
-			input:              1,
-			intermediateOutput: model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1}},
-			output:             model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1, Name: "LG"}},
+			1,
+			model.Product{1,"Ref",model.Brand{1,""}},
+			model.Product{1,"Ref",model.Brand{1,"LG"}},
+			nil,
 		},
 		{
-			input: 2,
-			err:   errors.ProductDoesNotExist,
+			2,
+			model.Product{},
+			model.Product{},
+			errors.New("Product does not exist"),
 		},
 		{
-			input:              3,
-			intermediateOutput: model.Product{Id: 3, Name: "Washing", Brand: model.Brand{Id: 2}},
-			output:             model.Product{Id: 3, Name: "Washing", Brand: model.Brand{Id: 2, Name: "Hyundai"}},
+			3,
+			model.Product{3,"Washing", model.Brand{2,""}},
+			model.Product{3,"Washing", model.Brand{2,"Hyundai"}},
+			nil,
 		},
 	}
 	for i,tc:=range testCases{
@@ -41,7 +45,7 @@ func TestGetById(t *testing.T){
 		if tc.err == nil {
 			bs.EXPECT().GetById(tc.output.Brand.Id).Return(tc.output.Brand, tc.err)
 		}
-		result,err:=servicePr.GetById(tc.input)
+		result,err:=servicepr.GetById(tc.input)
 		if err != nil {
 			if !reflect.DeepEqual(err,tc.err) {
 				t.Errorf("Failed at %v\n Error %v\n",i+1,tc.output)
@@ -56,7 +60,7 @@ func TestGetByName(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	ps:=product.NewMockStore(ctrl)
 	bs:=brand.NewMockStore(ctrl)
-	servicePr:=New(ps,bs)
+	servicepr:=New(ps,bs)
 	testCases:=[]struct{
 		input string
 		intermediateOutput []model.Product
@@ -64,20 +68,22 @@ func TestGetByName(t *testing.T){
 		err error
 	}{
 		{
-			input:              "Ref",
-			intermediateOutput: []model.Product{{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1}}},
-			output:             []model.Product{{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1, Name: "LG"}}},
+			"Ref",
+			[]model.Product{{1,"Ref",model.Brand{1,""}}},
+			[]model.Product{{1,"Ref",model.Brand{1,"LG"}}},
+			nil,
 		},
 		{
-			input:              "Wash",
-			intermediateOutput: []model.Product(nil),
-			output:             []model.Product(nil),
-			err:                errors.ProductDoesNotExist,
+			"Wash",
+			[]model.Product(nil),
+			[]model.Product(nil),
+			errors.New("Product does not exist"),
 		},
 		{
-			input:              "Washing",
-			intermediateOutput: []model.Product{{Id: 3, Name: "Washing", Brand: model.Brand{Id: 2}}},
-			output:             []model.Product{{Id: 3, Name: "Washing", Brand: model.Brand{Id: 2, Name: "Hyundai"}}},
+			"Washing",
+			[]model.Product{{3,"Washing", model.Brand{2,""}}},
+			[]model.Product{{3,"Washing", model.Brand{2,"Hyundai"}}},
+			nil,
 		},
 	}
 	for i,tc:=range testCases{
@@ -85,7 +91,7 @@ func TestGetByName(t *testing.T){
 		if tc.err == nil {
 			bs.EXPECT().GetById(tc.output[0].Brand.Id).Return(tc.output[0].Brand, tc.err)
 		}
-		result,err:=servicePr.GetByName(tc.input)
+		result,err:=servicepr.GetByName(tc.input)
 		if err != nil {
 			if !reflect.DeepEqual(err,tc.err) {
 				t.Errorf("Failed at %v\n Error %v\n",i+1,tc.output)
@@ -100,56 +106,37 @@ func TestCreateProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	br:=brand.NewMockStore(ctrl)
 	pr:=product.NewMockStore(ctrl)
-	servicePr:=New(pr,br)
+	servicepr:=New(pr,br)
 	testCases:=[]struct{
 		input model.Product
 		intermediateOutput model.Product
 		output model.Product
-		err []error
-		outputErr error
+		err error
 	}{
 		{
-			input:              model.Product{Name: "Ref", Brand: model.Brand{Id: 2,Name: "LG"}},
-			intermediateOutput: model.Product{ Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
-			output:             model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
-			err:				[]error{nil,nil,nil},
-			outputErr: 			nil,
+			model.Product{Name: "Ref", Brand: model.Brand{Id:2,Name: "LG"}},
+			model.Product{ Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
+			model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
+			nil,
 		},
 		{
-			input:              model.Product{Name: "Ref", Brand: model.Brand{Name: "LG"}},
-			intermediateOutput: model.Product{Name: "Ref", Brand: model.Brand{Id:2, Name: "LG"}},
-			output:             model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
-			err:                []error{errors.BrandDoesNotExist,nil,nil},
-			outputErr: 			errors.BrandDoesNotExist,
-		},
-		{
-			input:              model.Product{Name: "Ref", Brand: model.Brand{Name: "LG"}},
-			intermediateOutput: model.Product{Name: "Ref"},
-			err:                []error{errors.BrandDoesNotExist,errors.ThereIsSomeTechnicalIssue,nil},
-			outputErr:	 		errors.ThereIsSomeTechnicalIssue,
-		},
-		{
-			input:              model.Product{Name: "Ref", Brand: model.Brand{Name: "LG"}},
-			intermediateOutput: model.Product{Name: "Ref", Brand: model.Brand{Id: 5,Name: "LG"}},
-			err:                []error{errors.BrandDoesNotExist,nil,errors.ThereIsSomeTechnicalIssue},
-			outputErr: 			errors.ThereIsSomeTechnicalIssue,
+			model.Product{Name: "Ref", Brand: model.Brand{Name: "LG"}},
+			model.Product{Name: "Ref", Brand: model.Brand{Id:2,Name: "LG"}},
+			model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 2, Name: "LG"}},
+			errors.New("Brand does not exist"),
 		},
 	}
 	for i,tc:= range testCases {
-		br.EXPECT().GetByName(tc.input.Brand.Name).Return(tc.input.Brand,tc.err[0])
-		if tc.err[0] != nil {
-			br.EXPECT().CreateBrand(tc.input.Brand).Return(tc.intermediateOutput.Brand.Id,tc.err[1])
+		br.EXPECT().GetByName(tc.input.Brand.Name).Return(tc.output.Brand,tc.err)
+		if tc.err != nil {
+			br.EXPECT().CreateBrand(tc.input.Brand).Return(tc.intermediateOutput.Brand.Id,nil)
 		}
-		if tc.err[1] == nil {
-			pr.EXPECT().CreateProduct(tc.intermediateOutput).Return(tc.output.Id, tc.err[2])
-			if tc.err[2] == nil {
-				pr.EXPECT().GetById(tc.output.Id).Return(tc.output, nil)
-				br.EXPECT().GetById(tc.output.Brand.Id).Return(tc.output.Brand, nil)
-			}
-		}
-		result,err:=servicePr.CreateProduct(tc.input)
+		pr.EXPECT().CreateProduct(tc.intermediateOutput).Return(tc.output.Id,nil)
+		pr.EXPECT().GetById(tc.output.Id).Return(tc.output,nil)
+		br.EXPECT().GetById(tc.output.Brand.Id).Return(tc.output.Brand,nil)
+		result,err:=servicepr.CreateProduct(tc.input)
 		if err != nil {
-			if tc.outputErr != err{
+			if err != tc.err{
 				t.Error(err)
 			}
 		} else if result !=tc.output {
@@ -163,13 +150,13 @@ func TestUpdateProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	ps:=product.NewMockStore(ctrl)
 	bs:=brand.NewMockStore(ctrl)
-	servicePr:=New(ps,bs)
+	servicepr:=New(ps,bs)
 	testCases:=[]struct{
 		input model.Product
-		output []model.Product
-		expectedOutput model.Product
-		err []error
-		expectedErr error
+		outputS1 model.Product
+		outputS2 model.Product
+		output model.Product
+		err error
 	}{
 		{
 			input:  		model.Product{Id: 1,Brand: model.Brand{Name:"Oppo"}},
@@ -214,14 +201,10 @@ func TestUpdateProduct(t *testing.T){
 			err:			[]error{nil,nil,nil,errors.ProductDoesNotExist},
 			expectedErr: 	errors.ProductDoesNotExist,
 		},
-
 	}
 	for i,tc:=range testCases {
 		if tc.input.Brand.Name != "" {
-			bs.EXPECT().GetByName(tc.input.Brand.Name).Return(tc.output[0].Brand,tc.err[0])
-			if tc.err[0] != nil{
-				bs.EXPECT().CreateBrand(tc.input.Brand).Return(tc.output[0].Brand.Id,tc.err[1])
-			}
+			bs.EXPECT().GetByName(tc.input.Brand.Name).Return(tc.output.Brand,nil)
 		}
 		if tc.err[1] == nil {
 			ps.EXPECT().UpdateProduct(tc.output[0]).Return(tc.err[2])
@@ -238,7 +221,7 @@ func TestUpdateProduct(t *testing.T){
 			if err != tc.expectedErr{
 				t.Error(err)
 			}
-		} else if result !=tc.expectedOutput {
+		} else if result !=tc.output {
 			t.Errorf("Failed at %v\n Expected Output :%v\n Actual Output : %v\n",i+1,tc.output,result)
 		}
 	}
@@ -248,13 +231,13 @@ func TestDeleteProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	ps:=product.NewMockStore(ctrl)
 	bs:=brand.NewMockStore(ctrl)
-	servicePr:=New(ps,bs)
+	servicepr:=New(ps,bs)
 	testCases:=[]struct {
 		input  int
 		err error
 	}{
 		{
-			input: 1,err:errors.ProductDoesNotExist,
+			input: 1,err:errors.New("Id does not exist"),
 		},
 		{
 			input: 2,
@@ -262,7 +245,7 @@ func TestDeleteProduct(t *testing.T){
 	}
 	for _,tc:= range testCases{
 		ps.EXPECT().DeleteProduct(tc.input).Return(tc.err)
-		err:=servicePr.DeleteProduct(tc.input)
+		err:=servicepr.DeleteProduct(tc.input)
 		if tc.err != nil {
 			if err != tc.err{
 				t.Error(err)
@@ -271,3 +254,10 @@ func TestDeleteProduct(t *testing.T){
 	}
 }
 
+func TestAll(t *testing.T){
+	TestGetById(t)
+	TestGetByName(t)
+	TestCreateProduct(t)
+	TestUpdateProduct(t)
+	TestDeleteProduct(t)
+}
