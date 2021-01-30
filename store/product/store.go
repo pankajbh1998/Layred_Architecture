@@ -59,14 +59,14 @@ func (s storage)UpdateProduct(pr model.Product)error{
 	}
 	if pr.Brand.Id>0 {
 		if flag {
-			query+="',"
+			query+=","
 		}
 		query+=" BrandId='"+strconv.Itoa(pr.Brand.Id) + "' "
 	}
 	query+="where id = ?"
 	_,err:=s.Db.Exec(query,pr.Id )
 	if err != nil {
-		return errors.PleaseEnterSomeData
+		return errors.PleaseEnterValidData
 	}
 	return nil
 }

@@ -121,7 +121,7 @@ func TestStoreUpdateProduct(t *testing.T){
 	}{
 		{input: model.Product{Id: 1, Name: "Ref"}, rowsAffected: 1},
 		{input: model.Product{Id: 2, Brand: model.Brand{Id: 1}}, rowsAffected: 1},
-		{input: model.Product{Id: 3, Name: "Ref", Brand: model.Brand{Id: 1}}, outputErr: errors.PleaseEnterSomeData},
+		{input: model.Product{Id: 3, Name: "Ref", Brand: model.Brand{Id: 1}}, outputErr: errors.PleaseEnterValidData},
 	}
 	//str:=[]string{"id","name","brand name"}
 	for i,tc:=range testCases{

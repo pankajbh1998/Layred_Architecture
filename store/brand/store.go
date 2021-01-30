@@ -48,7 +48,7 @@ func (s storage)CreateBrand(br model.Brand)(int,error){
 func (s storage)UpdateBrand(br model.Brand)error{
 	_,err:=s.Db.Exec("Update Brand set Name=? where id=?",br.Name,br.Id)
 	if err != nil {
-		return errors.PleaseEnterSomeData
+		return errors.PleaseEnterValidData
 	}
 	return nil
 }

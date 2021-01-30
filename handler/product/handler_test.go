@@ -124,9 +124,9 @@ func TestCreateProduct(t *testing.T){
 		},
 		{
 			input: model.Product{},
-			output: []byte(errors.PleaseEnterSomeData),
+			output: []byte(errors.PleaseEnterValidData),
 			statusCode: 400,
-			err:errors.PleaseEnterSomeData,
+			err:errors.PleaseEnterValidData,
 		},
 		{
 			output: []byte(errors.InputIsNotInCorrectFormat),
@@ -199,9 +199,9 @@ func TestUpdateProduct(t *testing.T){
 		{
 			id:"3",
 			input: model.Product{},
-			output: []byte(errors.PleaseEnterSomeData),
+			output: []byte(errors.PleaseEnterValidData),
 			statusCode: 400,
-			err:errors.PleaseEnterSomeData,
+			err:errors.PleaseEnterValidData,
 		},
 		{
 			id:"abc",

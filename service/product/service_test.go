@@ -6,7 +6,6 @@ import (
 	"catalog/store/brand"
 	"catalog/store/product"
 	"github.com/golang/mock/gomock"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -179,7 +178,7 @@ func TestUpdateProduct(t *testing.T){
 								{Id: 1,Name:"R1",Brand: model.Brand{Id: 2}},
 							},
 			expectedOutput: model.Product{Id: 1,Name:"R1",Brand: model.Brand{Id: 2,Name:"Oppo"}},
-			err:			[]error{nil,nil,nil},
+			err:			[]error{nil,nil,nil,nil},
 		},
 		{
 			input:  		model.Product{Id: 1,Name:"R2",Brand: model.Brand{Name:"Oppo"}},
@@ -188,7 +187,8 @@ func TestUpdateProduct(t *testing.T){
 							{Id: 1, Name: "R2", Brand: model.Brand{Id: 2}},
 							},
 			expectedOutput: model.Product{Id: 1,Name:"R2",Brand: model.Brand{Id: 2,Name:"Oppo"}},
-			err:			[]error{errors.BrandDoesNotExist,nil,nil},
+			err:			[]error{errors.BrandDoesNotExist,nil,nil,nil},
+			expectedErr: 	nil,
 		},
 		{
 			input:  		model.Product{Id: 1,Name:"R2",Brand: model.Brand{Name:"Oppo"}},
@@ -196,13 +196,25 @@ func TestUpdateProduct(t *testing.T){
 							{Id:1},
 							{Id: 1, Name: "R2",Brand: model.Brand{Id:2,Name:"Oppo"}},
 							},
-			err:			[]error{errors.BrandDoesNotExist,errors.ThereIsSomeTechnicalIssue,nil},
+			err:			[]error{errors.BrandDoesNotExist,errors.ThereIsSomeTechnicalIssue,nil,nil},
+			expectedErr: 	errors.ThereIsSomeTechnicalIssue,
 		},
 		{
 			input:  		model.Product{Id: 1},
-			err:			[]error{nil,nil,errors.PleaseEnterSomeData},
+			err:			[]error{nil,nil,errors.PleaseEnterValidData},
 			output:			[]model.Product{{Id:1},{Id:1}},
+			expectedErr: 	errors.PleaseEnterValidData,
 		},
+		{
+			input:  		model.Product{Id: 1,Brand: model.Brand{Name:"Oppo"}},
+			output:  		[]model.Product{
+							{Id: 1,Brand: model.Brand{Id: 2,Name:"Oppo"}},
+							{Id: 1,Name:"R1",Brand: model.Brand{Id: 2}},
+							},
+			err:			[]error{nil,nil,nil,errors.ProductDoesNotExist},
+			expectedErr: 	errors.ProductDoesNotExist,
+		},
+
 	}
 	for i,tc:=range testCases {
 		if tc.input.Brand.Name != "" {
@@ -214,8 +226,10 @@ func TestUpdateProduct(t *testing.T){
 		if tc.err[1] == nil {
 			ps.EXPECT().UpdateProduct(tc.output[0]).Return(tc.err[2])
 			if tc.err[2] == nil {
-				ps.EXPECT().GetById(tc.input.Id).Return(tc.output[1], nil)
-				bs.EXPECT().GetById(tc.expectedOutput.Brand.Id).Return(tc.expectedOutput.Brand, nil)
+				ps.EXPECT().GetById(tc.input.Id).Return(tc.output[1], tc.err[3])
+				if tc.err[3] == nil {
+					bs.EXPECT().GetById(tc.expectedOutput.Brand.Id).Return(tc.expectedOutput.Brand, nil)
+				}
 			}
 		}
 
@@ -227,7 +241,6 @@ func TestUpdateProduct(t *testing.T){
 		} else if result !=tc.expectedOutput {
 			t.Errorf("Failed at %v\n Expected Output :%v\n Actual Output : %v\n",i+1,tc.output,result)
 		}
-		log.Printf("Passed %v\n",i+1)
 	}
 }
 

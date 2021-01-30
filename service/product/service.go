@@ -59,22 +59,26 @@ func (s service)CreateProduct(pr model.Product)(model.Product,error){
 }
 func (s service)UpdateProduct(pr model.Product)(model.Product,error){
 	br:=model.Brand{}
+	emptyProduct:=model.Product{}
 	if pr.Brand.Name != "" {
 		var err error
 		br,err=s.storeBr.GetByName(pr.Brand.Name)
 		if err !=nil {
 			br.Id,err=s.storeBr.CreateBrand(pr.Brand)
 			if err != nil {
-				return model.Product{}, err
+				return emptyProduct, err
 			}
 		}
 	}
 	pr.Brand=br
 	err:=s.storePr.UpdateProduct(pr)
 	if err != nil {
-			return model.Product{},err
+			return emptyProduct,err
 		}
-	pr,_=s.storePr.GetById(pr.Id)
+	pr,err=s.storePr.GetById(pr.Id)
+	if err != nil {
+		return emptyProduct,err
+	}
 	pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
 	return pr,nil
 }
