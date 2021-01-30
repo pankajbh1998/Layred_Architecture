@@ -159,28 +159,66 @@ func TestUpdateProduct(t *testing.T){
 		err error
 	}{
 		{
-			input:  model.Product{Id: 1,Brand: model.Brand{Name:"Oppo"}},
-			outputS1:  model.Product{Id: 1,Brand: model.Brand{Id: 2,Name:"Oppo"}},
-			outputS2:  model.Product{Id: 1,Name:"R1",Brand: model.Brand{Id: 2}},
-			output: model.Product{Id: 1,Name:"R1",Brand: model.Brand{Id: 2,Name:"Oppo"}},
+			input:  		model.Product{Id: 1,Brand: model.Brand{Name:"Oppo"}},
+			output:  		[]model.Product{
+								{Id: 1,Brand: model.Brand{Id: 2,Name:"Oppo"}},
+								{Id: 1,Name:"R1",Brand: model.Brand{Id: 2}},
+							},
+			expectedOutput: model.Product{Id: 1,Name:"R1",Brand: model.Brand{Id: 2,Name:"Oppo"}},
+			err:			[]error{nil,nil,nil,nil},
 		},
 		{
-			input:  model.Product{Id: 1,Name:"R2",Brand: model.Brand{}},
-			outputS1:  model.Product{Id: 1,Name:"R2",Brand: model.Brand{}},
-			outputS2:  model.Product{Id: 1,Name:"R2",Brand: model.Brand{Id: 2}},
-			output: model.Product{Id: 1,Name:"R2",Brand: model.Brand{Id: 2,Name:"Oppo"}},
+			input:  		model.Product{Id: 1,Name:"R2",Brand: model.Brand{Name:"Oppo"}},
+			output:  		[]model.Product{
+							{Id: 1,Name:"R2",Brand: model.Brand{Id:2}},
+							{Id: 1, Name: "R2", Brand: model.Brand{Id: 2}},
+							},
+			expectedOutput: model.Product{Id: 1,Name:"R2",Brand: model.Brand{Id: 2,Name:"Oppo"}},
+			err:			[]error{errors.BrandDoesNotExist,nil,nil,nil},
+			expectedErr: 	nil,
+		},
+		{
+			input:  		model.Product{Id: 1,Name:"R2",Brand: model.Brand{Name:"Oppo"}},
+			output:  		[]model.Product{
+							{Id:1},
+							{Id: 1, Name: "R2",Brand: model.Brand{Id:2,Name:"Oppo"}},
+							},
+			err:			[]error{errors.BrandDoesNotExist,errors.ThereIsSomeTechnicalIssue,nil,nil},
+			expectedErr: 	errors.ThereIsSomeTechnicalIssue,
+		},
+		{
+			input:  		model.Product{Id: 1},
+			err:			[]error{nil,nil,errors.PleaseEnterValidData},
+			output:			[]model.Product{{Id:1},{Id:1}},
+			expectedErr: 	errors.PleaseEnterValidData,
+		},
+		{
+			input:  		model.Product{Id: 1,Brand: model.Brand{Name:"Oppo"}},
+			output:  		[]model.Product{
+							{Id: 1,Brand: model.Brand{Id: 2,Name:"Oppo"}},
+							{Id: 1,Name:"R1",Brand: model.Brand{Id: 2}},
+							},
+			err:			[]error{nil,nil,nil,errors.ProductDoesNotExist},
+			expectedErr: 	errors.ProductDoesNotExist,
 		},
 	}
 	for i,tc:=range testCases {
 		if tc.input.Brand.Name != "" {
 			bs.EXPECT().GetByName(tc.input.Brand.Name).Return(tc.output.Brand,nil)
 		}
-		ps.EXPECT().UpdateProduct(tc.outputS1).Return(nil)
-		ps.EXPECT().GetById(tc.input.Id).Return(tc.outputS2,nil)
-		bs.EXPECT().GetById(tc.output.Brand.Id).Return(tc.output.Brand,nil)
-		result,err:=servicepr.UpdateProduct(tc.input)
-		if err != nil {
-			if err != tc.err{
+		if tc.err[1] == nil {
+			ps.EXPECT().UpdateProduct(tc.output[0]).Return(tc.err[2])
+			if tc.err[2] == nil {
+				ps.EXPECT().GetById(tc.input.Id).Return(tc.output[1], tc.err[3])
+				if tc.err[3] == nil {
+					bs.EXPECT().GetById(tc.expectedOutput.Brand.Id).Return(tc.expectedOutput.Brand, nil)
+				}
+			}
+		}
+
+		result,err:=servicePr.UpdateProduct(tc.input)
+		if tc.expectedErr != nil {
+			if err != tc.expectedErr{
 				t.Error(err)
 			}
 		} else if result !=tc.output {

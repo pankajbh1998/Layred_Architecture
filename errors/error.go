@@ -6,7 +6,7 @@ func (err constError) Error()string{
 }
 var (
 	ThereIsSomeTechnicalIssue 	= constError("There is some Technical Issue")
-	PleaseEnterSomeData			= constError("Please Enter Some Data")
+	PleaseEnterValidData			= constError("Please Enter Some Data")
 	ProductDoesNotExist			= constError("Product Doesn't Exist")
 	BrandDoesNotExist			= constError("Brand Doesn't Exist")
 	IdCantBeZeroOrNegative		= constError("Id can't be zero or negative")

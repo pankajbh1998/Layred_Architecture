@@ -120,7 +120,7 @@ func TestStoreUpdateBrand(t *testing.T){
 		outputErr error
 	}{
 		{input: model.Brand{Id: 1, Name: "LG"}, rowsAffected: 1},
-		{ outputErr: errors.PleaseEnterSomeData},
+		{ outputErr: errors.PleaseEnterValidData},
 	}
 	//str:=[]string{"id","name"}
 	for i,tc:=range testCases{
