@@ -2,23 +2,23 @@ package product
 
 import (
 	"catalog/model"
-	storeB "catalog/store/brand"
-	"catalog/store/product"
+	serviceInterface "catalog/service"
+	"catalog/store"
 )
 
 type service struct{
-	storePr product.Store
-	storeBr storeB.Store
+	storePr store.Product
+	storeBr store.Brand
 }
 
-func New(ps product.Store,bs storeB.Store)Service{
+func New(ps store.Product,bs store.Brand) serviceInterface.Product {
 	return service{ps,bs}
 }
 
 func (s service)GetById(id int)(model.Product,error){
 	prd,err:=s.storePr.GetById(id)
 	if err != nil {
-		return model.Product{},err
+		return prd,err
 	}
 	br,_:=s.storeBr.GetById(prd.Brand.Id)
 	prd.Brand=br
@@ -30,9 +30,7 @@ func (s service)GetByName(name string)([]model.Product,error){
 		return []model.Product(nil),err
 	}
 	for i,pr:=range prd {
-		//log.Println(pr)
 		pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
-		//log.Println(pr)
 		prd[i].Brand=pr.Brand
 	}
 	return prd,nil
@@ -40,7 +38,6 @@ func (s service)GetByName(name string)([]model.Product,error){
 
 func (s service)CreateProduct(pr model.Product)(model.Product,error){
 	br,err:=s.storeBr.GetByName(pr.Brand.Name)
-	//log.Println(br)
 	if err != nil {
 		num,err:=s.storeBr.CreateBrand(pr.Brand)
 		if err != nil {
@@ -48,42 +45,31 @@ func (s service)CreateProduct(pr model.Product)(model.Product,error){
 		}
 		br.Id=num
 	}
-	//log.Println(br)
 	pr.Brand=br
 	num,err:=s.storePr.CreateProduct(pr)
 	if err != nil {
 		return model.Product{},err
 	}
-	//log.Println(pr,num)
 	pr,err=s.storePr.GetById(num)
 	if err != nil {
 		return model.Product{},err
 	}
-	br,err=s.storeBr.GetById(pr.Brand.Id)
-	if err != nil {
-		return model.Product{},err
-	}
+	br,_=s.storeBr.GetById(pr.Brand.Id)
 	pr.Brand=br
 	return pr,nil
 }
 func (s service)UpdateProduct(pr model.Product)(model.Product,error){
-	br:=model.Brand{}
 	emptyProduct:=model.Product{}
 	if pr.Brand.Name != "" {
 		br,err:=s.storeBr.GetByName(pr.Brand.Name)
-		//log.Println(br)
 		if err !=nil {
-			num,err:=s.storeBr.CreateBrand(pr.Brand)
+			br.Id,err =s.storeBr.CreateBrand(pr.Brand)
 			if err != nil {
 				return emptyProduct, err
 			}
-			brId=num
-		} else {
-			brId=br.Id
 		}
-		//log.Println(brId)
+		pr.Brand.Id=br.Id
 	}
-	pr.Brand.Id=brId
 	err:=s.storePr.UpdateProduct(pr)
 	if err != nil {
 			return emptyProduct,err
@@ -93,16 +79,10 @@ func (s service)UpdateProduct(pr model.Product)(model.Product,error){
 		return emptyProduct,err
 	}
 	pr.Brand,_=s.storeBr.GetById(pr.Brand.Id)
-		return model.Product{},err
-	}
-	pr.Brand,err=s.storeBr.GetById(pr.Brand.Id)
-	if err != nil {
-		return model.Product{},err
-	}
 	return pr,nil
 }
 
-func (s service)DeleteProduct(id int)(error){
+func (s service)DeleteProduct(id int)error{
 	err:=s.storePr.DeleteProduct(id)
 	if err != nil {
 		return err
