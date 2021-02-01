@@ -63,7 +63,7 @@ func TestGetBYId(t *testing.T) {
 func TestGetByName(t *testing.T){
 	ctrl:=gomock.NewController(t)
 	servicePr:=product.NewMockService(ctrl)
-	handlerePr := New(servicePr)
+	handlerPr := New(servicePr)
 	testCases:=[]struct {
 		input      string
 		output     interface{}
@@ -95,7 +95,7 @@ func TestGetByName(t *testing.T){
 		r:=httptest.NewRequest("GET","/product",nil)
 		r=mux.SetURLVars(r,map[string]string{"name": tc.input})
 		servicePr.EXPECT().GetByName(tc.input).Return(sendData,tc.err)
-		handlerePr.GetByName(w,r)
+		handlerPr.GetByName(w,r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
 		if err != nil {
@@ -213,6 +213,9 @@ func TestUpdateProduct(t *testing.T){
 	}
 	for i,tc := range testCases{
 		inputByte,_:=json.Marshal(tc.input)
+		if tc.err==errors.PleaseEnterValidData {
+			inputByte,_=json.Marshal("Name{}")
+		}
 		w:=httptest.NewRecorder()
 		r:=httptest.NewRequest("PUT","/product",bytes.NewReader(inputByte))
 		r=mux.SetURLVars(r,map[string]string{"id":tc.id})
@@ -231,7 +234,7 @@ func TestUpdateProduct(t *testing.T){
 				t.Fatalf(err.Error())
 			}
 		}
-		if tc.err != errors.PleaseEnterValidId {
+		if tc.err != errors.PleaseEnterValidId && tc.err !=errors.PleaseEnterValidData{
 			ps.EXPECT().UpdateProduct(tc.input).Return(sendData, tc.err)
 		}
 		handlerPr.UpdateProduct(w, r)
@@ -287,14 +290,14 @@ func TestDeleteProduct(t *testing.T){
 		w:=httptest.NewRecorder()
 		r:=httptest.NewRequest("DELETE","/product",nil)
 		r=mux.SetURLVars(r,map[string]string{"id":tc.input})
-		numId,err:=strconv.Atoi(tc.input)
+
 		if tc.err[0] == nil {
+			numId,_:=strconv.Atoi(tc.input)
 			servicePr.EXPECT().DeleteProduct(numId).Return(tc.err[1])
 		}
 		handlerPr.DeleteProduct(w,r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
-		//log.Println(i,string(res))
 		if err != nil {
 			t.Error(err)
 		} else if tc.statusCode != result.StatusCode {

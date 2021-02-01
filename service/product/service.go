@@ -16,10 +16,9 @@ func New(ps product.Store,bs brand.Store)Service{
 }
 
 func (s service)GetById(id int)(model.Product,error){
-	emptyProduct:=model.Product{}
 	prd,err:=s.storePr.GetById(id)
 	if err != nil {
-		return emptyProduct,err
+		return prd,err
 	}
 
 	br,_:=s.storeBr.GetById(prd.Brand.Id)

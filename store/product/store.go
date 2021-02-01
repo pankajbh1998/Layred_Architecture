@@ -36,7 +36,7 @@ func (s storage)GetByName(name string)([]model.Product,error){
 	pr:=[]model.Product(nil)
 	for result.Next() {
 		var temp model.Product
-		result.Scan(&temp.Id, &temp.Name, &temp.Brand.Id)
+		_ = result.Scan(&temp.Id, &temp.Name, &temp.Brand.Id)
 		pr=append(pr,temp)
 	}
 	return pr,nil
@@ -74,7 +74,7 @@ func (s storage)UpdateProduct(pr model.Product)error{
 func (s storage)DeleteProduct(id int)error{
 	result,err:=s.Db.Exec("Delete from Product where id=?",id)
 	if err != nil {
-		return errors.ProductDoesNotExist
+		return errors.ThereIsSomeTechnicalIssue
 	}
 	num,_:=result.RowsAffected()
 	if num==0{

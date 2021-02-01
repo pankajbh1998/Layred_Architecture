@@ -33,7 +33,7 @@ func validateId(id string)(int ,error) {
 func (h handler)GetById(w http.ResponseWriter,r *http.Request){
 	id:=mux.Vars(r)["id"]
 	numId,err:=validateId(id)
-	if err != nil {
+	if err != nil{
 		http.Error(w,err.Error(),http.StatusBadRequest)
 		return
 	}
@@ -43,7 +43,7 @@ func (h handler)GetById(w http.ResponseWriter,r *http.Request){
 		return
 	}
 	post,_:=json.Marshal(result)
-	w.Write(post)
+	_, _ = w.Write(post)
 }
 
 func (h handler)GetByName(w http.ResponseWriter,r* http.Request){
@@ -54,7 +54,7 @@ func (h handler)GetByName(w http.ResponseWriter,r* http.Request){
 		return
 	}
 	post,_:=json.Marshal(result)
-	w.Write(post)
+	_, _ = w.Write(post)
 }
 
 func (h handler)CreateProduct(w http.ResponseWriter,r* http.Request){
@@ -70,13 +70,17 @@ func (h handler)CreateProduct(w http.ResponseWriter,r* http.Request){
 		return
 	}
 	post,_:=json.Marshal(result)
-	w.Write(post)
+	_, _ = w.Write(post)
 }
 func (h handler)UpdateProduct(w http.ResponseWriter,r* http.Request){
 	id:=mux.Vars(r)["id"]
 	pr:=model.Product{}
-	json.NewDecoder(r.Body).Decode(&pr)
-	numId,err:=validateId(id)
+	err:=json.NewDecoder(r.Body).Decode(&pr)
+	if err != nil {
+		http.Error(w,errors.PleaseEnterValidData.Error(),http.StatusBadRequest)
+		return
+	}
+	numId, err:= validateId(id)
 	if err != nil {
 		http.Error(w,err.Error(),http.StatusBadRequest)
 		return
@@ -88,7 +92,7 @@ func (h handler)UpdateProduct(w http.ResponseWriter,r* http.Request){
 		return
 	}
 	post,_:=json.Marshal(result)
-	w.Write(post)
+	_, _ = w.Write(post)
 }
 func (h handler)DeleteProduct(w http.ResponseWriter,r* http.Request){
 	id:=mux.Vars(r)["id"]

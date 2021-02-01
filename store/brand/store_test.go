@@ -9,7 +9,6 @@ import (
 )
 
 func TestStoreGetById(t *testing.T){
-	//log.Printf("Testing GetById")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to fake db")
@@ -20,8 +19,8 @@ func TestStoreGetById(t *testing.T){
 		output model.Brand
 		err error
 	}{
-		{1,model.Brand{1,"LG"},nil},
-		{2,model.Brand{},errors.BrandDoesNotExist},
+		{input: 1, output: model.Brand{Id: 1, Name: "LG"}},
+		{input: 2, err: errors.BrandDoesNotExist},
 	}
 	str:=[]string{"id","name"}
 	for i,tc:=range testCases{
@@ -38,12 +37,10 @@ func TestStoreGetById(t *testing.T){
 		}
 		
 	}
-	//log.Printf("Passed GetById")
 }
 
 
 func TestStoreGetByName(t *testing.T){
-	//log.Printf("Testing GetByName")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to fake db")
@@ -54,8 +51,8 @@ func TestStoreGetByName(t *testing.T){
 		output model.Brand
 		err error
 	}{
-		{"LG",model.Brand{1,"LG"},nil},
-		{"",model.Brand{},errors.BrandDoesNotExist},
+		{input: "LG", output: model.Brand{Id: 1, Name: "LG"}},
+		{err: errors.BrandDoesNotExist},
 	}
 	str:=[]string{"id","name"}
 	for i,tc:=range testCases{
@@ -71,12 +68,10 @@ func TestStoreGetByName(t *testing.T){
 		}
 		
 	}
-	//log.Printf("Testing GetByName")
 }
 
 
 func TestStoreCreateBrand(t *testing.T){
-	//log.Printf("Testing CreateBrand")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to fake db")
@@ -91,7 +86,6 @@ func TestStoreCreateBrand(t *testing.T){
 		{input: model.Brand{Name: "Hyundai"}, output: 2},
 		{err:errors.ThereIsSomeTechnicalIssue},
 	}
-	//str:=[]string{"id","name"}
 	for i,tc:=range testCases{
 		mock.ExpectExec("Insert into Brand*").WithArgs(tc.input.Name).WillReturnResult(sqlmock.NewResult(int64(tc.output),1)).WillReturnError(tc.err)
 		result,err:=store.CreateBrand(tc.input)
@@ -108,7 +102,6 @@ func TestStoreCreateBrand(t *testing.T){
 
 
 func TestStoreUpdateBrand(t *testing.T){
-	//log.Printf("Testing UpdateBrand")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to fake db")
@@ -122,7 +115,6 @@ func TestStoreUpdateBrand(t *testing.T){
 		{input: model.Brand{Id: 1, Name: "LG"}, rowsAffected: 1},
 		{ outputErr: errors.PleaseEnterValidData},
 	}
-	//str:=[]string{"id","name"}
 	for i,tc:=range testCases{
 		mock.ExpectExec("Update Brand*").WithArgs(tc.input.Name,tc.input.Id).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
 		err:=store.UpdateBrand(tc.input)
@@ -133,12 +125,10 @@ func TestStoreUpdateBrand(t *testing.T){
 		}
 		
 	}
-	//log.Printf("Passed UpdateBrand")
 }
 
 
 func TestStoreDeleteBrand(t *testing.T){
-	//log.Printf("Testing DeleteBrand")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to fake db")
@@ -149,10 +139,9 @@ func TestStoreDeleteBrand(t *testing.T){
 		rowsAffected int64
 		outputErr error
 	}{
-		{1,1,nil},
-		{2,0,errors.BrandDoesNotExist},
+		{input: 1, rowsAffected: 1},
+		{input: 2, outputErr: errors.BrandDoesNotExist},
 	}
-	//str:=[]string{"id","name"}
 	for i,tc:=range testCases{
 		mock.ExpectExec("Delete from Brand where*").WithArgs(tc.input).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
 		err:=store.DeleteBrand(tc.input)
@@ -163,6 +152,5 @@ func TestStoreDeleteBrand(t *testing.T){
 		}
 		
 	}
-	//log.Printf("Passed DeleteBrand")
 }
 
