@@ -11,18 +11,12 @@ const (
 	BrandDoesNotExist			= constError("Brand Doesn't Exist")
 	IdCantBeZeroOrNegative		= constError("Id can't be zero or negative")
 	PleaseEnterValidId			= constError("Please enter a valid numeric Id greater than Zero")
-	InputIsNotInCorrectFormat	= constError("Input is not in Correct Format")
+	InputIsNotInCorrectFormat	= constError("Input is  Incorrect Format")
 )
-
-//type msg struct{
-//	msgerr string
-//}
-//func (err msg)Error()string{
-//	return err.msgerr
-//}
-//func Newwrap(msg1 []error)msg{
-//	for msg21{
 //
-//	}
-//	return msg{msg1}
+//type ProductDoesNotExist struct{
+//	msg interface{}
+//}
+//func (err ProductDoesNotExist)Error()string{
+//	return fmt.Sprintf("Product with %v Doesn't exist",err.msg)
 //}

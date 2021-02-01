@@ -3,19 +3,20 @@ package product
 import (
 	"catalog/errors"
 	"catalog/model"
+	storeInterface "catalog/store"
 	"database/sql"
 	"strconv"
 )
 
-type storage struct{
+type store struct{
 	Db *sql.DB
 }
 
-func New(db *sql.DB) Store {
-	return storage{db}
+func New(db *sql.DB) storeInterface.Product {
+	return store{db}
 }
 
-func (s storage)GetById(id int)(model.Product,error){
+func (s store)GetById(id int)(model.Product,error){
 	emptyProduct:=model.Product{}
 	result:=s.Db.QueryRow("Select Id,Name,BrandId from Product where Id = ?",id)
 	var prd model.Product
@@ -27,7 +28,7 @@ func (s storage)GetById(id int)(model.Product,error){
 }
 
 
-func (s storage)GetByName(name string)([]model.Product,error){
+func (s store)GetByName(name string)([]model.Product,error){
 	emptyProduct:=[]model.Product(nil)
 	result,err:=s.Db.Query("Select Id,Name,BrandID from Product where Name = ?",name)
 	if err != nil {
@@ -41,7 +42,7 @@ func (s storage)GetByName(name string)([]model.Product,error){
 	}
 	return pr,nil
 }
-func (s storage)CreateProduct(pr model.Product)(int,error){
+func (s store)CreateProduct(pr model.Product)(int,error){
 	result,err:=s.Db.Exec("Insert into Product (Name,BrandId) values (?,?)",pr.Name,pr.Brand.Id)
 	if err != nil {
 		return 0,errors.ThereIsSomeTechnicalIssue
@@ -50,7 +51,7 @@ func (s storage)CreateProduct(pr model.Product)(int,error){
 	return int(num),err
 }
 
-func (s storage)UpdateProduct(pr model.Product)error{
+func (s store)UpdateProduct(pr model.Product)error{
 	query:="Update Product set"
 	flag:=false
 	if pr.Name != ""{
@@ -71,7 +72,7 @@ func (s storage)UpdateProduct(pr model.Product)error{
 	return nil
 }
 
-func (s storage)DeleteProduct(id int)error{
+func (s store)DeleteProduct(id int)error{
 	result,err:=s.Db.Exec("Delete from Product where id=?",id)
 	if err != nil {
 		return errors.ThereIsSomeTechnicalIssue

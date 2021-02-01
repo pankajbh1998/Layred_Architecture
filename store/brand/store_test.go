@@ -100,57 +100,57 @@ func TestStoreCreateBrand(t *testing.T){
 	}
 }
 
-
-func TestStoreUpdateBrand(t *testing.T){
-	fdb,mock,err:=sqlmock.New()
-	if err != nil {
-		t.Errorf("Cannot connect to fake db")
-	}
-	store:=New(fdb)
-	testCases:=[]struct{
-		input model.Brand
-		rowsAffected int64
-		outputErr error
-	}{
-		{input: model.Brand{Id: 1, Name: "LG"}, rowsAffected: 1},
-		{ outputErr: errors.PleaseEnterValidData},
-	}
-	for i,tc:=range testCases{
-		mock.ExpectExec("Update Brand*").WithArgs(tc.input.Name,tc.input.Id).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
-		err:=store.UpdateBrand(tc.input)
-		if tc.outputErr != nil {
-			if !reflect.DeepEqual(err,tc.outputErr) {
-				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v",i+1,tc.outputErr,err)
-			}
-		}
-		
-	}
-}
-
-
-func TestStoreDeleteBrand(t *testing.T){
-	fdb,mock,err:=sqlmock.New()
-	if err != nil {
-		t.Errorf("Cannot connect to fake db")
-	}
-	store:=New(fdb)
-	testCases:=[]struct{
-		input int
-		rowsAffected int64
-		outputErr error
-	}{
-		{input: 1, rowsAffected: 1},
-		{input: 2, outputErr: errors.BrandDoesNotExist},
-	}
-	for i,tc:=range testCases{
-		mock.ExpectExec("Delete from Brand where*").WithArgs(tc.input).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
-		err:=store.DeleteBrand(tc.input)
-		if tc.outputErr != nil {
-			if !reflect.DeepEqual(err,tc.outputErr) {
-				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v",i+1,tc.outputErr,err)
-			}
-		}
-		
-	}
-}
-
+//
+//func TestStoreUpdateBrand(t *testing.T){
+//	fdb,mock,err:=sqlmock.New()
+//	if err != nil {
+//		t.Errorf("Cannot connect to fake db")
+//	}
+//	store:=New(fdb)
+//	testCases:=[]struct{
+//		input model.Brand
+//		rowsAffected int64
+//		outputErr error
+//	}{
+//		{input: model.Brand{Id: 1, Name: "LG"}, rowsAffected: 1},
+//		{ outputErr: errors.PleaseEnterValidData},
+//	}
+//	for i,tc:=range testCases{
+//		mock.ExpectExec("Update Brand*").WithArgs(tc.input.Name,tc.input.Id).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
+//		err:=store.UpdateBrand(tc.input)
+//		if tc.outputErr != nil {
+//			if !reflect.DeepEqual(err,tc.outputErr) {
+//				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v",i+1,tc.outputErr,err)
+//			}
+//		}
+//
+//	}
+//}
+//
+//
+//func TestStoreDeleteBrand(t *testing.T){
+//	fdb,mock,err:=sqlmock.New()
+//	if err != nil {
+//		t.Errorf("Cannot connect to fake db")
+//	}
+//	store:=New(fdb)
+//	testCases:=[]struct{
+//		input int
+//		rowsAffected int64
+//		outputErr error
+//	}{
+//		{input: 1, rowsAffected: 1},
+//		{input: 2, outputErr: errors.BrandDoesNotExist},
+//	}
+//	for i,tc:=range testCases{
+//		mock.ExpectExec("Delete from Brand where*").WithArgs(tc.input).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
+//		err:=store.DeleteBrand(tc.input)
+//		if tc.outputErr != nil {
+//			if !reflect.DeepEqual(err,tc.outputErr) {
+//				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v",i+1,tc.outputErr,err)
+//			}
+//		}
+//
+//	}
+//}
+//

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"catalog/errors"
 	"catalog/model"
-	"catalog/service/product"
+	"catalog/service"
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
@@ -17,99 +17,89 @@ import (
 
 func TestGetBYId(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	ps := product.NewMockService(ctrl)
+	ps := service.NewMockProduct(ctrl)
 	ph := New(ps)
 	testCases := []struct {
-		input      string
-		output     interface{}
-		statusCode int
-		err        error
+		input      		string
+		output     		interface{}
+		statusCode 		int
+		expectedErr 	error
 	}{
 		{input: "1", output: model.Product{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1, Name: "LG"}},statusCode: 200},
-		{input: "2", output: []byte(errors.ProductDoesNotExist), statusCode: 400, err: errors.ProductDoesNotExist},
-		{input: "0", output: []byte(errors.IdCantBeZeroOrNegative), statusCode: 400},
-		{input: "abc1", output: []byte(errors.PleaseEnterValidId), statusCode: 400},
+		{input: "2", output: model.JsonPrint{Code: 400, Message: errors.ProductDoesNotExist.Error()}, statusCode: 400, expectedErr: errors.ProductDoesNotExist},
+		{input: "0", output: model.JsonPrint{Code: 400, Message: errors.IdCantBeZeroOrNegative.Error()}, statusCode: 400},
+		{input: "abc1", output: model.JsonPrint{Code: 400, Message: errors.PleaseEnterValidId.Error()}, statusCode: 400},
 	}
 	for i, tc := range testCases {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest("GET", "/product", nil)
 		r = mux.SetURLVars(r, map[string]string{"id": tc.input})
-
-		outputByte:=tc.output
 		id,err:=strconv.Atoi(tc.input)
 		if err==nil && id>0{
-			pr:=model.Product{}
-			_,ok:=tc.output.([]byte)
-			if !ok {
-				outputByte,_=json.Marshal(tc.output)
-				pr=tc.output.(model.Product)
-			}
-			ps.EXPECT().GetById(id).Return(pr, tc.err)
+			pr,_:=tc.output.(model.Product)
+			ps.EXPECT().GetById(id).Return(pr, tc.expectedErr)
 		}
 
 		ph.GetById(w, r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
+		expectedOutput,_:=json.Marshal(tc.output)
 		if err != nil {
 			t.Fatalf(err.Error())
 		} else if tc.statusCode != result.StatusCode {
 			t.Errorf("Failed at %v Wrong Status Code\n", i+1)
-		} else if !reflect.DeepEqual(bytes.TrimSpace(res) , outputByte) {
-			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(outputByte.([]byte)), string(res))
+		} else if !reflect.DeepEqual(res , expectedOutput) {
+			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(expectedOutput), string(res))
 		}
 	}
 }
 
 func TestGetByName(t *testing.T){
 	ctrl:=gomock.NewController(t)
-	servicePr:=product.NewMockService(ctrl)
+	servicePr:=service.NewMockProduct(ctrl)
 	handlerPr := New(servicePr)
 	testCases:=[]struct {
-		input      string
-		output     interface{}
-		err        error
-		statusCode int
+		input      		string
+		output     		interface{}
+		expectedErr     error
+		statusCode 		int
 	}{
 		{
 			input: "Mountain Dew",
 			output: []model.Product{
-						{Id:1,Name:"Mountain Dew",Brand: model.Brand{Name:"Pepsiso"}},
+						{Id:1,Name:"Mountain Dew",Brand: model.Brand{Name:"Pepsico"}},
 					},
 			statusCode: 200,
 		},
 		{
 			input:      "Coca Cola",
-			output: 	[]byte(errors.ProductDoesNotExist),
-			err:        errors.ProductDoesNotExist,
+			output:      model.JsonPrint{Code: 400, Message: errors.ProductDoesNotExist.Error()},
+			expectedErr: errors.ProductDoesNotExist,
 			statusCode: 400,
 		},
 	}
 	for i,tc:=range testCases{
-		outputByte:=tc.output
-		sendData:=[]model.Product(nil)
-		if tc.err == nil{
-			outputByte,_=json.Marshal(tc.output)
-			sendData=tc.output.([]model.Product)
-		}
 		w:=httptest.NewRecorder()
 		r:=httptest.NewRequest("GET","/product",nil)
 		r=mux.SetURLVars(r,map[string]string{"name": tc.input})
-		servicePr.EXPECT().GetByName(tc.input).Return(sendData,tc.err)
+		pr,_:=tc.output.([]model.Product)
+		servicePr.EXPECT().GetByName(tc.input).Return(pr, tc.expectedErr)
 		handlerPr.GetByName(w,r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
+		expectedOutput,_:=json.Marshal(tc.output)
 		if err != nil {
 			t.Fatalf(err.Error())
 		} else if tc.statusCode != result.StatusCode {
 			t.Errorf("Failed at %v Wrong Status Code\n", i+1)
-		} else if !reflect.DeepEqual(bytes.TrimSpace(res) , outputByte) {
-			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(outputByte.([]byte)), string(res))
+		} else if !reflect.DeepEqual(res , expectedOutput) {
+			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(expectedOutput), string(res))
 		}
 	}
 }
 func TestCreateProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
-	ps:=product.NewMockService(ctrl)
+	ps:=service.NewMockProduct(ctrl)
 	handlerPr:=New(ps)
 	testCases:=[]struct{
 		input model.Product
@@ -118,63 +108,54 @@ func TestCreateProduct(t *testing.T){
 		err error
 	}{
 		{
-			input: model.Product{Name:"R1",Brand: model.Brand{Name:"Realme"}},
-			output: model.Product{Id: 1,Name:"R1",Brand: model.Brand{Name:"Realme"}},
+			input: 		model.Product{Name:"R1",Brand: model.Brand{Name:"Realme"}},
+			output: 	model.Product{Id: 1,Name:"R1",Brand: model.Brand{Name:"Realme"}},
 			statusCode: 200,
 		},
 		{
-			input: model.Product{},
-			output: []byte(errors.PleaseEnterValidData),
+			output: 	model.JsonPrint{Code: 400, Message: errors.PleaseEnterValidData.Error()},
 			statusCode: 400,
-			err:errors.PleaseEnterValidData,
+			err: 		errors.PleaseEnterValidData,
 		},
 		{
-			output: []byte(errors.InputIsNotInCorrectFormat),
-			statusCode: 400,
-			err:errors.InputIsNotInCorrectFormat,
+			output: 	model.JsonPrint{Code: 500, Message: errors.ThereIsSomeTechnicalIssue.Error()},
+			statusCode: 500,
+			err:		errors.ThereIsSomeTechnicalIssue,
 		},
 	}
 	//json.Compact()
 	for i,tc := range testCases{
-		pr:=model.Product{}
-		outputByte:=tc.output
-		_,ok:=tc.output.([]byte)
-		if !ok {
-			outputByte, _ = json.Marshal(tc.output)
-			pr = tc.output.(model.Product)
-		}
-
 		var data interface{}
 		data=tc.input
-
-		if tc.err == errors.InputIsNotInCorrectFormat{
+		if tc.err == errors.PleaseEnterValidData{
 			data=[]string{"name}"}
 		} else {
+			pr,_:=tc.output.(model.Product)
 			ps.EXPECT().CreateProduct(tc.input).Return(pr, tc.err)
 		}
 
 		inputByte,_:=json.Marshal(data)
-		sendBody:=bytes.NewReader(inputByte)
-		//r:=httptest.NewRequest("POST","/product",strings.NewReader(string(inputByte)))
 		w:=httptest.NewRecorder()
-		r:=httptest.NewRequest("POST","/product",sendBody)
+		r:=httptest.NewRequest("POST","/product",bytes.NewReader(inputByte))
+		//r:=httptest.NewRequest("POST","/product",strings.NewReader(string(inputByte)))
 
 		handlerPr.CreateProduct(w,r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
+		expectedOutput,_:=json.Marshal(tc.output)
 		if err != nil {
 			t.Fatalf(err.Error())
 		} else if tc.statusCode != result.StatusCode {
 			t.Errorf("Failed at %v Wrong Status Code\n", i+1)
-		} else if !reflect.DeepEqual(bytes.TrimSpace(res) , outputByte) {
-			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(outputByte.([]byte)), string(res))
+		} else if !reflect.DeepEqual(res , expectedOutput) {
+			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(expectedOutput), string(res))
 		}
 	}
 }
 
 func TestUpdateProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
-	ps:=product.NewMockService(ctrl)
+	ps:=service.NewMockProduct(ctrl)
 	handlerPr:=New(ps)
 	testCases:=[]struct{
 		id string
@@ -192,21 +173,28 @@ func TestUpdateProduct(t *testing.T){
 		{
 			id:"2",
 			input: model.Product{Name:"R2",Brand: model.Brand{Name:""}},
-			output: []byte(errors.ProductDoesNotExist),
+			output: model.JsonPrint{Code: 400, Message: errors.ProductDoesNotExist.Error()},
 			statusCode: 400,
 			err:errors.ProductDoesNotExist,
 		},
 		{
 			id:"3",
 			input: model.Product{},
-			output: []byte(errors.PleaseEnterValidData),
+			output: model.JsonPrint{Code: 400, Message: errors.PleaseEnterValidData.Error()},
 			statusCode: 400,
 			err:errors.PleaseEnterValidData,
 		},
 		{
+			id:"4",
+			input: model.Product{},
+			output: model.JsonPrint{Code: 500, Message: errors.ThereIsSomeTechnicalIssue.Error()},
+			statusCode: 500,
+			err:errors.ThereIsSomeTechnicalIssue,
+		},
+		{
 			id:"abc",
 			input: model.Product{},
-			output: []byte(errors.PleaseEnterValidId),
+			output: model.JsonPrint{Code: 400, Message: errors.PleaseEnterValidId.Error()},
 			statusCode: 400,
 			err:errors.PleaseEnterValidId,
 		},
@@ -214,45 +202,33 @@ func TestUpdateProduct(t *testing.T){
 	for i,tc := range testCases{
 		inputByte,_:=json.Marshal(tc.input)
 		if tc.err==errors.PleaseEnterValidData {
-			inputByte,_=json.Marshal("Name{}")
+			inputByte,_=json.Marshal("Name{")
 		}
 		w:=httptest.NewRecorder()
 		r:=httptest.NewRequest("PUT","/product",bytes.NewReader(inputByte))
 		r=mux.SetURLVars(r,map[string]string{"id":tc.id})
-		numId,_:=strconv.Atoi(tc.id)
-		tc.input.Id = numId
-
-
-		sendData:=model.Product{}
-		_,ok:=tc.output.([]byte)
-		outputByte:=tc.output
-		if !ok {
-			var err error
-			sendData=tc.output.(model.Product)
-			outputByte,err=json.Marshal(tc.output)
-			if err != nil {
-				t.Fatalf(err.Error())
-			}
-		}
-		if tc.err != errors.PleaseEnterValidId && tc.err !=errors.PleaseEnterValidData{
-			ps.EXPECT().UpdateProduct(tc.input).Return(sendData, tc.err)
+		tc.input.Id,_=strconv.Atoi(tc.id)
+		if tc.input.Id>0 && tc.err != errors.PleaseEnterValidData{
+			pr,_:=tc.output.(model.Product)
+			ps.EXPECT().UpdateProduct(tc.input).Return(pr, tc.err)
 		}
 		handlerPr.UpdateProduct(w, r)
 		result := w.Result()
 		res, err := ioutil.ReadAll(result.Body)
+		expectedOutput,_:=json.Marshal(tc.output)
 		if err != nil {
 			t.Fatalf(err.Error())
 		} else if tc.statusCode != result.StatusCode {
 			t.Errorf("Failed at %v Wrong Status Code\n", i+1)
-		} else if !reflect.DeepEqual(bytes.TrimSpace(res) , outputByte) {
-			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(outputByte.([]byte)), string(res))
+		} else if !reflect.DeepEqual(res , expectedOutput) {
+			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(expectedOutput), string(res))
 		}
 	}
 }
 
 func TestDeleteProduct(t *testing.T){
 	ctrl:=gomock.NewController(t)
-	servicePr:=product.NewMockService(ctrl)
+	servicePr:=service.NewMockProduct(ctrl)
 	handlerPr:=New(servicePr)
 	testCases:=[]struct{
 		input string
@@ -268,19 +244,25 @@ func TestDeleteProduct(t *testing.T){
 		},
 		{
 			input:	"2",
-			output: []byte(errors.ProductDoesNotExist),
+			output: model.JsonPrint{Code: 400, Message: errors.ProductDoesNotExist.Error()},
 			err:	[]error{nil,errors.ProductDoesNotExist},
 			statusCode: 400,
 		},
 		{
+			input:	"2",
+			output: model.JsonPrint{Code: 500, Message: errors.ThereIsSomeTechnicalIssue.Error()},
+			err:	[]error{nil,errors.ThereIsSomeTechnicalIssue},
+			statusCode: 500,
+		},
+		{
 			input:	"0",
-			output: []byte(errors.IdCantBeZeroOrNegative),
+			output: model.JsonPrint{Code: 400, Message: errors.IdCantBeZeroOrNegative.Error()},
 			err:	[]error{errors.IdCantBeZeroOrNegative,nil},
 			statusCode: 400,
 		},
 		{
 			input:	"abc",
-			output: []byte(errors.PleaseEnterValidId),
+			output: model.JsonPrint{Code: 400, Message: errors.PleaseEnterValidId.Error()},
 			err:	[]error{errors.PleaseEnterValidId,nil},
 			statusCode: 400,
 		},
@@ -298,12 +280,13 @@ func TestDeleteProduct(t *testing.T){
 		handlerPr.DeleteProduct(w,r)
 		result:=w.Result()
 		res,err:=ioutil.ReadAll(result.Body)
+		expectedOutput, _ := json.Marshal(tc.output)
 		if err != nil {
 			t.Error(err)
 		} else if tc.statusCode != result.StatusCode {
 			t.Errorf("Failed at %v Wrong Status Code\n", i+1)
-		} else if tc.output != nil && !reflect.DeepEqual(bytes.TrimSpace(res) , tc.output) {
-			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(tc.output.([]byte)), string(res))
+		} else if tc.output != nil && !reflect.DeepEqual(res , expectedOutput) {
+			t.Errorf("Failed at %v\nExpected Output : %v\nActual Output   : %v\n", i+1, string(expectedOutput), string(res))
 		}
 	}
 }
