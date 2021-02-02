@@ -24,7 +24,7 @@ func TestStoreGetById(t *testing.T){
 			{input: 2, err: errors.ProductDoesNotExist},
 		}
 	)
-	str:=[]string{"id","name","brand name"}
+	str:=[]string{"id","name","brandId"}
 	for i,tc:=range testCases{
 		row:=sqlmock.NewRows(str).AddRow(tc.output.Id,tc.output.Name,tc.output.Brand.Id)
 		mock.ExpectQuery("Select Id,Name,BrandId from Product where*").WithArgs(tc.input).WillReturnError(tc.err).WillReturnRows(row)
@@ -52,8 +52,8 @@ func TestStoreGetByName(t *testing.T){
 		output []model.Product
 		err error
 	}{
-		{"Ref",[]model.Product{{1,"Ref",model.Brand{1,""}}},nil},
-		{"",[]model.Product(nil),errors.ProductDoesNotExist},
+		{input: "Ref", output: []model.Product{{Id: 1, Name: "Ref", Brand: model.Brand{Id: 1}}}},
+		{output: []model.Product(nil), err: errors.ProductDoesNotExist},
 	}
 	str:=[]string{"id","name","brand name"}
 	for i,tc:=range testCases{
@@ -123,7 +123,6 @@ func TestStoreUpdateProduct(t *testing.T){
 		{input: model.Product{Id: 2, Brand: model.Brand{Id: 1}}, rowsAffected: 1},
 		{input: model.Product{Id: 3, Name: "Ref", Brand: model.Brand{Id: 1}}, outputErr: errors.PleaseEnterValidData},
 	}
-	//str:=[]string{"id","name","brand name"}
 	for i,tc:=range testCases{
 		mock.ExpectExec("Update Product set*").WithArgs(tc.input.Id).WillReturnError(tc.outputErr).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
 
@@ -135,12 +134,10 @@ func TestStoreUpdateProduct(t *testing.T){
 		}
 		
 	}
-	//log.Printf("Passed UpdateProduct")
 }
 
 
 func TestStoreDeleteProduct(t *testing.T){
-	//log.Printf("Testing DeleteProduct")
 	fdb,mock,err:=sqlmock.New()
 	if err != nil {
 		t.Errorf("Cannot connect to Mock DataBase")
@@ -153,7 +150,7 @@ func TestStoreDeleteProduct(t *testing.T){
 		outputErr error
 	}{
 		{input: 1, rowsAffected: 1,err: []error{nil}},
-		{input: 2, err: []error{errors.ProductDoesNotExist},outputErr: errors.ProductDoesNotExist},
+		{input: 2, err: []error{errors.ThereIsSomeTechnicalIssue},outputErr: errors.ThereIsSomeTechnicalIssue},
 		{input: 3, err: []error{nil , errors.ProductDoesNotExist},outputErr: errors.ProductDoesNotExist},
 	}
 
@@ -161,10 +158,9 @@ func TestStoreDeleteProduct(t *testing.T){
 		mock.ExpectExec("Delete from Product*").WithArgs(tc.input).WillReturnError(tc.err[0]).WillReturnResult(sqlmock.NewResult(0,tc.rowsAffected))
 		err:=store.DeleteProduct(tc.input)
 		if tc.outputErr != nil {
-			if !reflect.DeepEqual(err,tc.outputErr) {
-				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v",i+1,tc.outputErr,err)
+			if !reflect.DeepEqual(err, tc.outputErr) {
+				t.Errorf("Failed at : %v\nExpected Error : %v\nActual Error : %v", i+1, tc.outputErr, err)
 			}
 		}
-		
 	}
 }

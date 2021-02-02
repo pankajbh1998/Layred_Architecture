@@ -14,8 +14,8 @@ import (
 
 func main(){
 	r:=mux.NewRouter()
-	db,err:=sql.Open("mysql","Pankaj:Pankaj@123@tcp(127.0.0.1)/Company")
-	err=db.Ping()
+	db,_:=sql.Open("mysql","Pankaj:Pankaj@123@tcp(127.0.0.1)/Company")
+	err:=db.Ping()
 	if err != nil {
 		log.Fatalf("cannot connect with database")
 	}
@@ -29,5 +29,5 @@ func main(){
 	r.HandleFunc("/product",handlerPr.CreateProduct).Methods("POST")
 	r.HandleFunc("/product",handlerPr.UpdateProduct).Methods("PUT").Queries("id","{id}")
 	r.HandleFunc("/product",handlerPr.DeleteProduct).Methods("DELETE").Queries("id","{id}")
-	http.ListenAndServe(":8080",r)
+	_=http.ListenAndServe(":8080",r)
 }
